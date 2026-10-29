@@ -1297,11 +1297,10 @@ int installTrollStore(NSString* pathToTar)
 		}
 	//}
 
-	// Merge existing URL scheme settings value
-	if(!getTSURLSchemeState(nil))
-	{
-		setTSURLSchemeState(NO, tmpTrollStorePath);
-	}
+	// Enable the URL scheme by default in the installed build.
+	// The icon cache is rebuilt below after registration so the change is applied
+	// immediately, without requiring manual action in Settings.
+	setTSURLSchemeState(YES, tmpTrollStorePath);
 
 	// Update system app persistence helper if used
 	LSApplicationProxy* persistenceHelperApp = findPersistenceHelperApp(PERSISTENCE_HELPER_TYPE_SYSTEM);
@@ -1315,6 +1314,21 @@ int installTrollStore(NSString* pathToTar)
 	int ret = installApp(tmpPackagePath, NO, YES, YES, YES, NO);
 	NSLog(@"[installTrollStore] installApp => %d", ret);
 	[[NSFileManager defaultManager] removeItemAtPath:tmpPackagePath error:nil];
+
+	// installApp registers the new TrollStore but intentionally skips the full
+	// icon-cache rebuild for this special install path. Rebuild it now so the
+	// newly enabled apple-magnifier URL scheme is effective immediately.
+	if(ret == 0)
+	{
+		refreshAppRegistrations(!shouldRegisterAsUserByDefault());
+		cleanRestrictions();
+		[[NSFileManager defaultManager]
+			removeItemAtPath:@"/var/containers/Shared/SystemGroup/systemgroup.com.apple.lsd.iconscache/Library/Caches/com.apple.IconsCache"
+			error:nil];
+		[[LSApplicationWorkspace defaultWorkspace] _LSPrivateRebuildApplicationDatabasesForSystemApps:YES internal:YES user:YES];
+		if(!shouldRegisterAsUserByDefault()) refreshAppRegistrations(YES);
+		killall(@"backboardd", YES);
+	}
 	return ret;
 }
 
