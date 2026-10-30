@@ -19,12 +19,14 @@ jobs:
           brew install ldid libarchive openssl@3 pkg-config
 
       - name: Install Theos
-        uses: theos/theos-action@main
+        run: |
+          git clone --recursive https://github.com/theos/theos.git ~/theos
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
 
       - name: Install Theos iOS 16.5 SDK
         run: |
           git clone --depth=1 https://github.com/theos/sdks.git /tmp/theos-sdks
-          cp -r /tmp/theos-sdks/iPhoneOS16.5.sdk $THEOS/sdks/
+          cp -r /tmp/theos-sdks/iPhoneOS16.5.sdk $HOME/theos/sdks/
 
       - name: Build and install pwnify
         run: |
