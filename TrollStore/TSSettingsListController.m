@@ -365,7 +365,7 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
         [installAlertConfigurationSpecifier setProperty:@"installationConfirmationNames" forKey:@"titlesDataSource"];
 		[installAlertConfigurationSpecifier setProperty:APP_ID forKey:@"defaults"];
 		[installAlertConfigurationSpecifier setProperty:@"installAlertConfiguration" forKey:@"key"];
-        [installAlertConfigurationSpecifier setProperty:@0 forKey:@"default"];
+        [installAlertConfigurationSpecifier setProperty:@2 forKey:@"default"];
 
 		[_specifiers addObject:installAlertConfigurationSpecifier];
 

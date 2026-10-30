@@ -44,34 +44,42 @@ assemble_trollstore:
 	@tar -czvf ./_build/TrollStore.tar -C ./TrollStore/.theos/obj TrollStore.app
 
 build_installer15:
-	@mkdir -p ./_build/tmp15
-	@unzip ./Victim/InstallerVictim.ipa -d ./_build/tmp15
-	@cp ./_build/PersistenceHelper_Embedded_Legacy_arm64 ./_build/TrollStorePersistenceHelperToInject
-	@pwnify set-cpusubtype ./_build/TrollStorePersistenceHelperToInject 1
-	@ldid -s -K./Victim/victim.p12 ./_build/TrollStorePersistenceHelperToInject
-	APP_PATH=$$(find ./_build/tmp15/Payload -name "*" -depth 1) ; \
-	APP_NAME=$$(basename $$APP_PATH) ; \
-	BINARY_NAME=$$(echo "$$APP_NAME" | cut -f 1 -d '.') ; \
-	echo $$BINARY_NAME ; \
-	pwnify pwn ./_build/tmp15/Payload/$$APP_NAME/$$BINARY_NAME ./_build/TrollStorePersistenceHelperToInject
-	@pushd ./_build/tmp15 ; \
-	zip -vrD ../../_build/TrollHelper_iOS15.ipa * ; \
-	popd
-	@rm ./_build/TrollStorePersistenceHelperToInject
-	@rm -rf ./_build/tmp15
+	@if [ -f ./Victim/InstallerVictim.ipa ]; then \
+		mkdir -p ./_build/tmp15 ; \
+		unzip ./Victim/InstallerVictim.ipa -d ./_build/tmp15 ; \
+		cp ./_build/PersistenceHelper_Embedded_Legacy_arm64 ./_build/TrollStorePersistenceHelperToInject ; \
+		pwnify set-cpusubtype ./_build/TrollStorePersistenceHelperToInject 1 ; \
+		ldid -s -K./Victim/victim.p12 ./_build/TrollStorePersistenceHelperToInject ; \
+		APP_PATH=$$(find ./_build/tmp15/Payload -name "*" -depth 1) ; \
+		APP_NAME=$$(basename $$APP_PATH) ; \
+		BINARY_NAME=$$(echo "$$APP_NAME" | cut -f 1 -d '.') ; \
+		echo $$BINARY_NAME ; \
+		pwnify pwn ./_build/tmp15/Payload/$$APP_NAME/$$BINARY_NAME ./_build/TrollStorePersistenceHelperToInject ; \
+		pushd ./_build/tmp15 ; \
+		zip -vrD ../../_build/TrollHelper_iOS15.ipa * ; \
+		popd ; \
+		rm ./_build/TrollStorePersistenceHelperToInject ; \
+		rm -rf ./_build/tmp15 ; \
+	else \
+		echo "Skipping build_installer15: ./Victim/InstallerVictim.ipa not found" ; \
+	fi
 
 build_installer64e:
-	@mkdir -p ./_build/tmp64e
-	@unzip ./Victim/InstallerVictim.ipa -d ./_build/tmp64e
-	APP_PATH=$$(find ./_build/tmp64e/Payload -name "*" -depth 1) ; \
-	APP_NAME=$$(basename $$APP_PATH) ; \
-	BINARY_NAME=$$(echo "$$APP_NAME" | cut -f 1 -d '.') ; \
-	echo $$BINARY_NAME ; \
-	pwnify pwn64e ./_build/tmp64e/Payload/$$APP_NAME/$$BINARY_NAME ./_build/PersistenceHelper_Embedded_Legacy_arm64e
-	@pushd ./_build/tmp64e ; \
-	zip -vrD ../../_build/TrollHelper_arm64e.ipa * ; \
-	popd
-	@rm -rf ./_build/tmp64e
+	@if [ -f ./Victim/InstallerVictim.ipa ]; then \
+		mkdir -p ./_build/tmp64e ; \
+		unzip ./Victim/InstallerVictim.ipa -d ./_build/tmp64e ; \
+		APP_PATH=$$(find ./_build/tmp64e/Payload -name "*" -depth 1) ; \
+		APP_NAME=$$(basename $$APP_PATH) ; \
+		BINARY_NAME=$$(echo "$$APP_NAME" | cut -f 1 -d '.') ; \
+		echo $$BINARY_NAME ; \
+		pwnify pwn64e ./_build/tmp64e/Payload/$$APP_NAME/$$BINARY_NAME ./_build/PersistenceHelper_Embedded_Legacy_arm64e ; \
+		pushd ./_build/tmp64e ; \
+		zip -vrD ../../_build/TrollHelper_arm64e.ipa * ; \
+		popd ; \
+		rm -rf ./_build/tmp64e ; \
+	else \
+		echo "Skipping build_installer64e: ./Victim/InstallerVictim.ipa not found" ; \
+	fi
 
 make_trollstore_lite:
 	@$(MAKE) -C ./RootHelper DEBUG=0 TROLLSTORE_LITE=1

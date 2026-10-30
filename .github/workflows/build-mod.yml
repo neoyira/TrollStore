@@ -15,13 +15,26 @@ jobs:
           submodules: recursive
 
       - name: Install dependencies
-        run: brew install ldid
+        run: |
+          brew install ldid libarchive openssl@3 pkg-config
 
       - name: Install Theos
         uses: theos/theos-action@main
 
+      - name: Install Theos iOS 16.5 SDK
+        run: |
+          git clone --depth=1 https://github.com/theos/sdks.git /tmp/theos-sdks
+          cp -r /tmp/theos-sdks/iPhoneOS16.5.sdk $THEOS/sdks/
+
+      - name: Build and install pwnify
+        run: |
+          make -C Pwnify
+          sudo make -C Pwnify install
+
       - name: Build packages
-        run: make package FINALPACKAGE=1
+        run: |
+          export PKG_CONFIG_PATH="/opt/homebrew/opt/openssl@3/lib/pkgconfig:$PKG_CONFIG_PATH"
+          make package FINALPACKAGE=1
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
