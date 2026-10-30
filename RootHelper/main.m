@@ -33,6 +33,7 @@
 #endif
 
 void cleanRestrictions(void);
+void refreshAppRegistrations(BOOL system);
 
 extern mach_msg_return_t SBReloadIconForIdentifier(mach_port_t machport, const char* identifier);
 @interface SBSHomeScreenService : NSObject
