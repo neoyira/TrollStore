@@ -103,7 +103,13 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
 
 + (void)presentInstallationAlertIfEnabledForFile:(NSString*)pathToIPA isRemoteInstall:(BOOL)remoteInstall completion:(void (^)(BOOL, NSError*))completionBlock
 {
-	NSNumber* installAlertConfigurationNum = [trollStoreUserDefaults() objectForKey:@"installAlertConfiguration"];
+	NSUserDefaults* tsDefaults = trollStoreUserDefaults();
+	if(![tsDefaults boolForKey:@"hasConfiguredInstallAlert_v2"])
+	{
+		[tsDefaults setObject:@2 forKey:@"installAlertConfiguration"];
+		[tsDefaults setBool:YES forKey:@"hasConfiguredInstallAlert_v2"];
+	}
+	NSNumber* installAlertConfigurationNum = [tsDefaults objectForKey:@"installAlertConfiguration"];
 	NSUInteger installAlertConfiguration = 2;
 	if(installAlertConfigurationNum)
 	{

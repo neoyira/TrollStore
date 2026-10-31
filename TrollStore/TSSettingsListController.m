@@ -604,7 +604,17 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
 - (NSObject*)readPreferenceValue:(PSSpecifier*)specifier
 {
 	NSUserDefaults* tsDefaults = trollStoreUserDefaults();
-	NSObject* toReturn = [tsDefaults objectForKey:[specifier propertyForKey:@"key"]];
+	NSString* key = [specifier propertyForKey:@"key"];
+	if([key isEqualToString:@"installAlertConfiguration"])
+	{
+		if(![tsDefaults boolForKey:@"hasConfiguredInstallAlert_v2"])
+		{
+			[tsDefaults setObject:@2 forKey:@"installAlertConfiguration"];
+			[tsDefaults setBool:YES forKey:@"hasConfiguredInstallAlert_v2"];
+			return @2;
+		}
+	}
+	NSObject* toReturn = [tsDefaults objectForKey:key];
 	if(!toReturn)
 	{
 		toReturn = [specifier propertyForKey:@"default"];
