@@ -45,6 +45,7 @@ jobs:
           path: |
             _build/*.tar
             _build/*.ipa
+            _build/PersistenceHelper_Embedded*
             TrollHelper/packages/*.deb
             TrollStoreLite/packages/*.deb
           if-no-files-found: warn
