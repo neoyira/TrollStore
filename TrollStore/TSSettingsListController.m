@@ -369,6 +369,18 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
 
 		[_specifiers addObject:installAlertConfigurationSpecifier];
 
+		PSSpecifier* openAppAfterInstallToggle = [PSSpecifier preferenceSpecifierNamed:@"Open App After Install"
+										target:self
+										set:@selector(setPreferenceValue:specifier:)
+										get:@selector(readPreferenceValue:)
+										detail:nil
+										cell:PSSwitchCell
+										edit:nil];
+		[openAppAfterInstallToggle setProperty:APP_ID forKey:@"defaults"];
+		[openAppAfterInstallToggle setProperty:@"openAppAfterInstall" forKey:@"key"];
+		[openAppAfterInstallToggle setProperty:@YES forKey:@"default"];
+		[_specifiers addObject:openAppAfterInstallToggle];
+
 		PSSpecifier* otherGroupSpecifier = [PSSpecifier emptyGroupSpecifier];
 		[otherGroupSpecifier setProperty:[NSString stringWithFormat:@"%@ %@\n\n© 2022-2026 Lars Fröder (opa334)\n\nTrollStore is NOT for piracy!\n\nCredits:\nGoogle TAG, @alfiecg_dev: CoreTrust bug\n@lunotech11, @SerenaKit, @tylinux, @TheRealClarity, @dhinakg, @khanhduytran0: Various contributions\n@ProcursusTeam: uicache, ldid\n@cstar_ow: uicache\n@saurik: ldid", APP_NAME, [self getTrollStoreVersion]] forKey:@"footerText"];
 		[_specifiers addObject:otherGroupSpecifier];

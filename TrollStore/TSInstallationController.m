@@ -16,6 +16,10 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
 		[TSPresentationDelegate startActivity:@"Installing"];
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^
 		{
+			TSAppInfo* appInfo = [[TSAppInfo alloc] initWithIPAPath:pathToIPA];
+			[appInfo sync_loadInfo];
+			NSString* bundleId = [appInfo bundleIdentifier];
+
 			// Install IPA
 			NSString* log;
 			int ret = [[TSApplicationsManager sharedInstance] installIpa:pathToIPA force:force log:&log];
@@ -34,6 +38,13 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
 				{
 					if (ret == 0) {
 						// success
+						NSNumber* openAppNum = [trollStoreUserDefaults() objectForKey:@"openAppAfterInstall"];
+						BOOL shouldOpenApp = openAppNum ? [openAppNum boolValue] : YES;
+						if (shouldOpenApp && bundleId) {
+							dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+								[[TSApplicationsManager sharedInstance] openApplicationWithBundleID:bundleId];
+							});
+						}
 						if(completionBlock) completionBlock(YES, nil);
 					} else if (ret == 171) {
 						// recoverable error
