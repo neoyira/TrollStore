@@ -50,5 +50,7 @@
 	<true/>
 	<key>com.apple.runningboard.process-state</key>
 	<true/>
+	<key>com.apple.multitasking.unlimitedassertions</key>
+	<true/>
 </dict>
 </plist>

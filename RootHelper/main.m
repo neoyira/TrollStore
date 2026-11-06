@@ -7,6 +7,7 @@
 #import <spawn.h>
 #import <objc/runtime.h>
 #import <TSUtil.h>
+#import "TSAPIDaemon.h"
 #import <sys/utsname.h>
 #import <mach-o/loader.h>
 #import <mach-o/fat.h>
@@ -1736,6 +1737,22 @@ int MAIN_NAME(int argc, char *argv[], char *envp[])
 		{
 			// assumes that checkDeveloperMode() has already been called
 			ret = !armDeveloperMode(NULL);
+		}
+		else if([cmd isEqualToString:@"start-api-daemon"])
+		{
+			ret = startAPIDaemonProcess();
+		}
+		else if([cmd isEqualToString:@"stop-api-daemon"])
+		{
+			ret = stopAPIDaemonProcess();
+		}
+		else if([cmd isEqualToString:@"status-api-daemon"])
+		{
+			ret = isAPIDaemonRunning() ? 0 : 1;
+		}
+		else if([cmd isEqualToString:@"api-daemon"])
+		{
+			ret = runAPIDaemon();
 		}
 #endif
 
