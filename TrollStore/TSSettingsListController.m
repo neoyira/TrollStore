@@ -6,6 +6,7 @@
 #import "TSInstallationController.h"
 #import "TSSettingsAdvancedListController.h"
 #import "TSDonateListController.h"
+#import "TSAPIServer.h"
 
 @interface NSUserDefaults (Private)
 - (instancetype)_initWithSuiteName:(NSString *)suiteName container:(NSURL *)container;
@@ -381,6 +382,33 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
 		[openAppAfterInstallToggle setProperty:@YES forKey:@"default"];
 		[_specifiers addObject:openAppAfterInstallToggle];
 
+		PSSpecifier* remoteAPIGroupSpecifier = [PSSpecifier emptyGroupSpecifier];
+		remoteAPIGroupSpecifier.name = @"Remote Control";
+		[remoteAPIGroupSpecifier setProperty:@"Enables an ultra-lightweight BSD HTTP socket server on port 8080 with background persistence. Allows remote installation, opening apps, and status queries via Wi-Fi or USB." forKey:@"footerText"];
+		[_specifiers addObject:remoteAPIGroupSpecifier];
+
+		PSSpecifier* enableAPIServerToggle = [PSSpecifier preferenceSpecifierNamed:@"Remote API Server"
+									target:self
+									set:@selector(setPreferenceValue:specifier:)
+									get:@selector(readPreferenceValue:)
+									detail:nil
+									cell:PSSwitchCell
+									edit:nil];
+		[enableAPIServerToggle setProperty:APP_ID forKey:@"defaults"];
+		[enableAPIServerToggle setProperty:@"enableAPIServer" forKey:@"key"];
+		[enableAPIServerToggle setProperty:@YES forKey:@"default"];
+		[_specifiers addObject:enableAPIServerToggle];
+
+		PSSpecifier* apiPortSpecifier = [PSSpecifier preferenceSpecifierNamed:@"Port"
+									target:self
+									set:nil
+									get:@selector(getAPIPortString:)
+									detail:nil
+									cell:PSStaticTextCell
+									edit:nil];
+		[apiPortSpecifier setProperty:@NO forKey:@"enabled"];
+		[_specifiers addObject:apiPortSpecifier];
+
 		PSSpecifier* otherGroupSpecifier = [PSSpecifier emptyGroupSpecifier];
 		[otherGroupSpecifier setProperty:[NSString stringWithFormat:@"%@ %@\n\n© 2022-2026 Lars Fröder (opa334)\n\nTrollStore is NOT for piracy!\n\nCredits:\nGoogle TAG, @alfiecg_dev: CoreTrust bug\n@lunotech11, @SerenaKit, @tylinux, @TheRealClarity, @dhinakg, @khanhduytran0: Various contributions\n@ProcursusTeam: uicache, ldid\n@cstar_ow: uicache\n@saurik: ldid", APP_NAME, [self getTrollStoreVersion]] forKey:@"footerText"];
 		[_specifiers addObject:otherGroupSpecifier];
@@ -602,6 +630,11 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
 	[TSPresentationDelegate presentViewController:rebuildNoticeAlert animated:YES completion:nil];
 }
 
+- (id)getAPIPortString:(PSSpecifier*)specifier
+{
+	return @"8080";
+}
+
 - (void)doTheDashPressed
 {
 	spawnRoot(rootHelperPath(), @[@"dash"], nil, nil);
@@ -610,13 +643,34 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
 - (void)setPreferenceValue:(NSObject*)value specifier:(PSSpecifier*)specifier
 {
 	NSUserDefaults* tsDefaults = trollStoreUserDefaults();
-	[tsDefaults setObject:value forKey:[specifier propertyForKey:@"key"]];
+	NSString* key = [specifier propertyForKey:@"key"];
+	[tsDefaults setObject:value forKey:key];
+
+	if([key isEqualToString:@"enableAPIServer"])
+	{
+		if([(NSNumber*)value boolValue])
+		{
+			[[TSAPIServer sharedInstance] start];
+		}
+		else
+		{
+			[[TSAPIServer sharedInstance] stop];
+		}
+	}
 }
 
 - (NSObject*)readPreferenceValue:(PSSpecifier*)specifier
 {
 	NSUserDefaults* tsDefaults = trollStoreUserDefaults();
 	NSString* key = [specifier propertyForKey:@"key"];
+	if([key isEqualToString:@"enableAPIServer"])
+	{
+		if(![tsDefaults objectForKey:@"enableAPIServer"])
+		{
+			[tsDefaults setObject:@YES forKey:@"enableAPIServer"];
+			return @YES;
+		}
+	}
 	if([key isEqualToString:@"installAlertConfiguration"])
 	{
 		if(![tsDefaults boolForKey:@"hasConfiguredInstallAlert_v2"])

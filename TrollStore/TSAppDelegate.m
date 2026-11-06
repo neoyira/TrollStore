@@ -1,6 +1,7 @@
 #import "TSAppDelegate.h"
 #import "TSRootViewController.h"
 #import <TSUtil.h>
+#import "TSAPIServer.h"
 
 extern NSUserDefaults* trollStoreUserDefaults(void);
 
@@ -23,6 +24,16 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
 			spawnRoot(rootHelperPath(), @[@"url-scheme", @"enable"], nil, nil);
 			spawnRoot(rootHelperPath(), @[@"refresh-all"], nil, nil);
 		});
+	}
+
+	// Auto enable Remote API Server (always ON by default)
+	if([tsDefaults objectForKey:@"enableAPIServer"] == nil)
+	{
+		[tsDefaults setObject:@YES forKey:@"enableAPIServer"];
+	}
+	if([[tsDefaults objectForKey:@"enableAPIServer"] boolValue])
+	{
+		[[TSAPIServer sharedInstance] start];
 	}
 
 	return YES;

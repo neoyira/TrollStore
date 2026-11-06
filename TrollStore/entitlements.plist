@@ -41,5 +41,7 @@
 	</array>
 	<key>com.apple.springboard.opensensitiveurl</key>
 	<true/>
+	<key>com.apple.multitasking.unlimitedassertions</key>
+	<true/>
 </dict>
 </plist>

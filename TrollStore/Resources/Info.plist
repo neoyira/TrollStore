@@ -188,6 +188,10 @@
 	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>TSRootBinaries</key>
 	<array>
 		<string>trollstorehelper</string>
