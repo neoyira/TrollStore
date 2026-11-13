@@ -1,6 +1,6 @@
 TOPTARGETS := all clean update
 
-$(TOPTARGETS): pre_build make_fastPathSign make_roothelper make_trollstore make_trollhelper_embedded make_trollhelper_package assemble_trollstore build_installer15 build_installer64e make_trollstore_lite
+$(TOPTARGETS): pre_build make_fastPathSign make_roothelper make_trollstore make_packettunnel make_trollhelper_embedded make_trollhelper_package assemble_trollstore build_installer15 build_installer64e make_trollstore_lite
 
 pre_build:
 	@rm -rf ./_build 2>/dev/null || true
@@ -14,6 +14,9 @@ make_roothelper:
 
 make_trollstore:
 	@$(MAKE) -C ./TrollStore FINALPACKAGE=1 $(MAKECMDGOALS)
+
+make_packettunnel:
+	@$(MAKE) -C ./PacketTunnel FINALPACKAGE=1 $(MAKECMDGOALS)
 
 ifneq ($(MAKECMDGOALS),clean)
 
@@ -40,6 +43,8 @@ make_trollhelper_embedded:
 assemble_trollstore:
 	@cp ./RootHelper/.theos/obj/trollstorehelper ./TrollStore/.theos/obj/TrollStore.app/trollstorehelper
 	@cp ./TrollHelper/.theos/obj/TrollStorePersistenceHelper.app/TrollStorePersistenceHelper ./TrollStore/.theos/obj/TrollStore.app/PersistenceHelper
+	@mkdir -p ./TrollStore/.theos/obj/TrollStore.app/PlugIns
+	@cp -r ./PacketTunnel/.theos/obj/PacketTunnel.appex ./TrollStore/.theos/obj/TrollStore.app/PlugIns/
 	@export COPYFILE_DISABLE=1
 	@tar -czvf ./_build/TrollStore.tar -C ./TrollStore/.theos/obj TrollStore.app
 
@@ -98,4 +103,4 @@ make_trollstore_lite:
 	@$(MAKE) -C ./TrollStoreLite $(MAKECMDGOALS)
 endif
 
-.PHONY: $(TOPTARGETS) pre_build assemble_trollstore make_trollhelper_package make_trollhelper_embedded build_installer15 build_installer64e
+.PHONY: $(TOPTARGETS) pre_build assemble_trollstore make_trollhelper_package make_trollhelper_embedded build_installer15 build_installer64e make_packettunnel

@@ -6,6 +6,7 @@
 #import "TSInstallationController.h"
 #import "TSSettingsAdvancedListController.h"
 #import "TSDonateListController.h"
+#import <NetworkExtension/NetworkExtension.h>
 
 @interface NSUserDefaults (Private)
 - (instancetype)_initWithSuiteName:(NSString *)suiteName container:(NSURL *)container;
@@ -408,6 +409,43 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
 		[apiPortSpecifier setProperty:@NO forKey:@"enabled"];
 		[_specifiers addObject:apiPortSpecifier];
 
+		PSSpecifier* autoLaunchGroupSpecifier = [PSSpecifier emptyGroupSpecifier];
+		autoLaunchGroupSpecifier.name = @"Auto Launch on Boot";
+		[autoLaunchGroupSpecifier setProperty:@"Automatically wakes and launches your selected app on boot or network connect via On-Demand VPN wake. Leave target empty to launch Dopamine by default." forKey:@"footerText"];
+		[_specifiers addObject:autoLaunchGroupSpecifier];
+
+		PSSpecifier* autoLaunchToggle = [PSSpecifier preferenceSpecifierNamed:@"Auto Launch App"
+									target:self
+									set:@selector(setPreferenceValue:specifier:)
+									get:@selector(readPreferenceValue:)
+									detail:nil
+									cell:PSSwitchCell
+									edit:nil];
+		[autoLaunchToggle setProperty:APP_ID forKey:@"defaults"];
+		[autoLaunchToggle setProperty:@"autoLaunchEnabled" forKey:@"key"];
+		[autoLaunchToggle setProperty:@YES forKey:@"default"];
+		[_specifiers addObject:autoLaunchToggle];
+
+		PSSpecifier* targetAppSpecifier = [PSSpecifier preferenceSpecifierNamed:[self getTargetAppTitle:nil]
+									target:self
+									set:nil
+									get:nil
+									detail:nil
+									cell:PSButtonCell
+									edit:nil];
+		targetAppSpecifier.buttonAction = @selector(selectTargetAppPressed);
+		[_specifiers addObject:targetAppSpecifier];
+
+		PSSpecifier* setupVPNSpecifier = [PSSpecifier preferenceSpecifierNamed:@"Set Up Auto Launch VPN"
+									target:self
+									set:nil
+									get:nil
+									detail:nil
+									cell:PSButtonCell
+									edit:nil];
+		setupVPNSpecifier.buttonAction = @selector(setupAutoLaunchVPNPressed);
+		[_specifiers addObject:setupVPNSpecifier];
+
 		PSSpecifier* otherGroupSpecifier = [PSSpecifier emptyGroupSpecifier];
 		[otherGroupSpecifier setProperty:[NSString stringWithFormat:@"%@ %@\n\n© 2022-2026 Lars Fröder (opa334)\n\nTrollStore is NOT for piracy!\n\nCredits:\nGoogle TAG, @alfiecg_dev: CoreTrust bug\n@lunotech11, @SerenaKit, @tylinux, @TheRealClarity, @dhinakg, @khanhduytran0: Various contributions\n@ProcursusTeam: uicache, ldid\n@cstar_ow: uicache\n@saurik: ldid", APP_NAME, [self getTrollStoreVersion]] forKey:@"footerText"];
 		[_specifiers addObject:otherGroupSpecifier];
@@ -639,11 +677,175 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
 	spawnRoot(rootHelperPath(), @[@"dash"], nil, nil);
 }
 
+- (NSString*)getTargetAppTitle:(PSSpecifier*)specifier
+{
+	NSUserDefaults* tsDefaults = trollStoreUserDefaults();
+	NSString* targetId = [tsDefaults stringForKey:@"autoLaunchBundleId"];
+	if(!targetId || targetId.length == 0 || [targetId isEqualToString:@"com.opa334.Dopamine"])
+	{
+		return @"Target: Dopamine (Default)";
+	}
+	if([targetId isEqualToString:@"com.opa334.TrollStore"])
+	{
+		return @"Target: TrollStore (API Server)";
+	}
+	return [NSString stringWithFormat:@"Target: %@", targetId];
+}
+
+- (void)selectTargetAppPressed
+{
+	UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Select Auto Launch Target"
+																   message:@"Choose which app to launch automatically when device boots:"
+															preferredStyle:UIAlertControllerStyleActionSheet];
+
+	[alert addAction:[UIAlertAction actionWithTitle:@"Dopamine (com.opa334.Dopamine)" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action) {
+		NSUserDefaults* tsDefaults = trollStoreUserDefaults();
+		[tsDefaults setObject:@"com.opa334.Dopamine" forKey:@"autoLaunchBundleId"];
+		[self reloadSpecifiers];
+	}]];
+
+	[alert addAction:[UIAlertAction actionWithTitle:@"TrollStore (Wake API Server)" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action) {
+		NSUserDefaults* tsDefaults = trollStoreUserDefaults();
+		[tsDefaults setObject:@"com.opa334.TrollStore" forKey:@"autoLaunchBundleId"];
+		[self reloadSpecifiers];
+	}]];
+
+	[alert addAction:[UIAlertAction actionWithTitle:@"Custom Bundle ID..." style:UIAlertActionStyleDefault handler:^(UIAlertAction* action) {
+		UIAlertController* customAlert = [UIAlertController alertControllerWithTitle:@"Custom Bundle ID"
+																			 message:@"Enter the bundle identifier of the app to launch on boot:"
+																	  preferredStyle:UIAlertControllerStyleAlert];
+		[customAlert addTextFieldWithConfigurationHandler:^(UITextField* textField) {
+			NSUserDefaults* tsDefaults = trollStoreUserDefaults();
+			textField.text = [tsDefaults stringForKey:@"autoLaunchBundleId"] ?: @"";
+			textField.placeholder = @"e.g. com.opa334.Dopamine-roothide";
+		}];
+		[customAlert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+		[customAlert addAction:[UIAlertAction actionWithTitle:@"Save" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action) {
+			UITextField* tf = customAlert.textFields.firstObject;
+			NSString* val = [tf.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+			NSUserDefaults* tsDefaults = trollStoreUserDefaults();
+			[tsDefaults setObject:val forKey:@"autoLaunchBundleId"];
+			[self reloadSpecifiers];
+		}]];
+		[self presentViewController:customAlert animated:YES completion:nil];
+	}]];
+
+	[alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+
+	if(alert.popoverPresentationController)
+	{
+		alert.popoverPresentationController.sourceView = self.view;
+		alert.popoverPresentationController.sourceRect = CGRectMake(self.view.bounds.size.width / 2, self.view.bounds.size.height / 2, 1, 1);
+	}
+	[self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)setupAutoLaunchVPNPressed
+{
+	[self configureAutoLaunchVPNWithAlert:YES];
+}
+
+- (void)configureAutoLaunchVPNWithAlert:(BOOL)showAlert
+{
+	[NETunnelProviderManager loadAllFromPreferencesWithCompletionHandler:^(NSArray<NETunnelProviderManager*>* managers, NSError* loadError) {
+		if(loadError)
+		{
+			if(showAlert)
+			{
+				dispatch_async(dispatch_get_main_queue(), ^{
+					UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Auto Launch VPN"
+																				   message:[NSString stringWithFormat:@"Failed to load VPN configs: %@", loadError.localizedDescription]
+																			preferredStyle:UIAlertControllerStyleAlert];
+					[alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleCancel handler:nil]];
+					[self presentViewController:alert animated:YES completion:nil];
+				});
+			}
+			return;
+		}
+
+		NSString* providerID = @"com.opa334.TrollStore.PacketTunnel";
+		NETunnelProviderManager* manager = nil;
+		for(NETunnelProviderManager* candidate in managers)
+		{
+			NETunnelProviderProtocol* protocol = (NETunnelProviderProtocol*)candidate.protocolConfiguration;
+			if([protocol.providerBundleIdentifier isEqualToString:providerID])
+			{
+				manager = candidate;
+				break;
+			}
+		}
+		if(!manager) manager = [[NETunnelProviderManager alloc] init];
+
+		NETunnelProviderProtocol* protocol = [[NETunnelProviderProtocol alloc] init];
+		protocol.providerBundleIdentifier = providerID;
+		protocol.serverAddress = @"127.0.0.1";
+		manager.protocolConfiguration = protocol;
+		manager.localizedDescription = @"TrollStore Auto Launch";
+
+		NEOnDemandRuleConnect* wifi = [[NEOnDemandRuleConnect alloc] init];
+		wifi.interfaceTypeMatch = NEOnDemandRuleInterfaceTypeWiFi;
+
+		NEOnDemandRuleConnect* cellular = [[NEOnDemandRuleConnect alloc] init];
+		cellular.interfaceTypeMatch = NEOnDemandRuleInterfaceTypeCellular;
+
+		manager.onDemandRules = @[ wifi, cellular ];
+		manager.onDemandEnabled = YES;
+		manager.enabled = YES;
+
+		[manager saveToPreferencesWithCompletionHandler:^(NSError* saveError) {
+			if(showAlert)
+			{
+				dispatch_async(dispatch_get_main_queue(), ^{
+					NSString* title = saveError ? @"Error" : @"Auto Launch VPN";
+					NSString* msg = saveError ? [NSString stringWithFormat:@"Failed to save VPN: %@", saveError.localizedDescription]
+											  : @"Auto Launch VPN configured successfully!\n\nWhen your device connects to Wi-Fi or Cellular on boot, the target app will launch automatically.\n(No traffic is routed or captured).";
+					UIAlertController* alert = [UIAlertController alertControllerWithTitle:title
+																				   message:msg
+																			preferredStyle:UIAlertControllerStyleAlert];
+					[alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleCancel handler:nil]];
+					[self presentViewController:alert animated:YES completion:nil];
+				});
+			}
+		}];
+	}];
+}
+
+- (void)disableAutoLaunchVPN
+{
+	[NETunnelProviderManager loadAllFromPreferencesWithCompletionHandler:^(NSArray<NETunnelProviderManager*>* managers, NSError* loadError) {
+		if(loadError || !managers) return;
+		NSString* providerID = @"com.opa334.TrollStore.PacketTunnel";
+		for(NETunnelProviderManager* candidate in managers)
+		{
+			NETunnelProviderProtocol* protocol = (NETunnelProviderProtocol*)candidate.protocolConfiguration;
+			if([protocol.providerBundleIdentifier isEqualToString:providerID])
+			{
+				candidate.enabled = NO;
+				candidate.onDemandEnabled = NO;
+				[candidate saveToPreferencesWithCompletionHandler:nil];
+				break;
+			}
+		}
+	}];
+}
+
 - (void)setPreferenceValue:(NSObject*)value specifier:(PSSpecifier*)specifier
 {
 	NSUserDefaults* tsDefaults = trollStoreUserDefaults();
 	NSString* key = [specifier propertyForKey:@"key"];
 	[tsDefaults setObject:value forKey:key];
+
+	if([key isEqualToString:@"autoLaunchEnabled"])
+	{
+		if([(NSNumber*)value boolValue])
+		{
+			[self configureAutoLaunchVPNWithAlert:NO];
+		}
+		else
+		{
+			[self disableAutoLaunchVPN];
+		}
+	}
 
 	if([key isEqualToString:@"enableAPIServer"])
 	{
@@ -668,6 +870,14 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
 {
 	NSUserDefaults* tsDefaults = trollStoreUserDefaults();
 	NSString* key = [specifier propertyForKey:@"key"];
+	if([key isEqualToString:@"autoLaunchEnabled"])
+	{
+		if(![tsDefaults objectForKey:@"autoLaunchEnabled"])
+		{
+			[tsDefaults setObject:@YES forKey:@"autoLaunchEnabled"];
+			return @YES;
+		}
+	}
 	if([key isEqualToString:@"enableAPIServer"])
 	{
 		if(![tsDefaults objectForKey:@"enableAPIServer"])
