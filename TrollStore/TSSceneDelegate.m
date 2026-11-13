@@ -89,6 +89,13 @@
 						});
 					}
 				}
+				else if([components.host isEqualToString:@"start-api"])
+				{
+					spawnRoot(rootHelperPath(), @[@"start-api-daemon"], nil, nil);
+					dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+						[[UIApplication sharedApplication] performSelector:@selector(suspend)];
+					});
+				}
 			}
 		}
 	}

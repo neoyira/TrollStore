@@ -556,6 +556,65 @@ int isAPIDaemonRunning(void)
     return 0;
 }
 
+static void installLaunchDaemonIfNeeded(void)
+{
+    NSString *executablePath = getExecutablePath();
+    if (!executablePath) return;
+
+    NSArray *possibleDaemonDirs = @[
+        @"/var/jb/Library/LaunchDaemons",
+        @"/Library/LaunchDaemons"
+    ];
+
+    NSString *plistContent = [NSString stringWithFormat:
+        @"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        @"<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n"
+        @"<plist version=\"1.0\">\n"
+        @"<dict>\n"
+        @"    <key>Label</key>\n"
+        @"    <string>com.opa334.trollstoreapi</string>\n"
+        @"    <key>ProgramArguments</key>\n"
+        @"    <array>\n"
+        @"        <string>%@</string>\n"
+        @"        <string>api-daemon</string>\n"
+        @"    </array>\n"
+        @"    <key>RunAtLoad</key>\n"
+        @"    <true/>\n"
+        @"    <key>KeepAlive</key>\n"
+        @"    <true/>\n"
+        @"</dict>\n"
+        @"</plist>\n",
+        executablePath];
+
+    for (NSString *dir in possibleDaemonDirs) {
+        if ([[NSFileManager defaultManager] fileExistsAtPath:dir]) {
+            NSString *plistPath = [dir stringByAppendingPathComponent:@"com.opa334.trollstoreapi.plist"];
+            NSError *err = nil;
+            BOOL written = [plistContent writeToFile:plistPath atomically:YES encoding:NSUTF8StringEncoding error:&err];
+            if (written) {
+                chmod([plistPath fileSystemRepresentation], 0644);
+                chown([plistPath fileSystemRepresentation], 0, 0);
+                NSLog(@"[TSAPIDaemon] Installed LaunchDaemon to %@", plistPath);
+            }
+        }
+    }
+}
+
+static void removeLaunchDaemonIfExists(void)
+{
+    NSArray *possibleDaemonDirs = @[
+        @"/var/jb/Library/LaunchDaemons",
+        @"/Library/LaunchDaemons"
+    ];
+    for (NSString *dir in possibleDaemonDirs) {
+        NSString *plistPath = [dir stringByAppendingPathComponent:@"com.opa334.trollstoreapi.plist"];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:plistPath]) {
+            [[NSFileManager defaultManager] removeItemAtPath:plistPath error:nil];
+            NSLog(@"[TSAPIDaemon] Removed LaunchDaemon from %@", plistPath);
+        }
+    }
+}
+
 int stopAPIDaemonProcess(void)
 {
     NSString *pidStr = [NSString stringWithContentsOfFile:PID_FILE_PATH encoding:NSUTF8StringEncoding error:nil];
@@ -574,11 +633,13 @@ int stopAPIDaemonProcess(void)
         }
     }
     [[NSFileManager defaultManager] removeItemAtPath:PID_FILE_PATH error:nil];
+    removeLaunchDaemonIfExists();
     return 0;
 }
 
 int startAPIDaemonProcess(void)
 {
+    installLaunchDaemonIfNeeded();
     if (isAPIDaemonRunning()) {
         NSLog(@"[TSAPIDaemon] Daemon is already running (stopping to restart fresh)");
         stopAPIDaemonProcess();
