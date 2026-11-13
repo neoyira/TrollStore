@@ -67,7 +67,13 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
 
 #pragma mark - Background Keepalive
 
-static id s_bksAssertion = nil;
+@interface BKSProcessAssertion : NSObject
+- (instancetype)initWithPID:(int)pid flags:(unsigned int)flags reason:(unsigned int)reason name:(NSString *)name withHandler:(void (^)(BOOL))handler;
+- (BOOL)acquire;
+- (void)invalidate;
+@end
+
+static BKSProcessAssertion *s_bksAssertion = nil;
 
 static void acquireBKSAssertion(void)
 {
