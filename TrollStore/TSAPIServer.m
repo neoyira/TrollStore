@@ -14,6 +14,12 @@
 
 extern NSUserDefaults* trollStoreUserDefaults(void);
 
+@interface BKSProcessAssertion : NSObject
+- (instancetype)initWithPID:(int)pid flags:(unsigned int)flags reason:(unsigned int)reason name:(NSString *)name withHandler:(void (^)(BOOL))handler;
+- (BOOL)acquire;
+- (void)invalidate;
+@end
+
 @interface TSAPIServer ()
 {
     int _serverSocket;
@@ -66,12 +72,6 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
 }
 
 #pragma mark - Background Keepalive
-
-@interface BKSProcessAssertion : NSObject
-- (instancetype)initWithPID:(int)pid flags:(unsigned int)flags reason:(unsigned int)reason name:(NSString *)name withHandler:(void (^)(BOOL))handler;
-- (BOOL)acquire;
-- (void)invalidate;
-@end
 
 static BKSProcessAssertion *s_bksAssertion = nil;
 
