@@ -46,6 +46,9 @@ static void ts_autoLaunch(void)
         return;
     }
 
+    // Always wake TrollStore in background so its Remote API Server is listening
+    ts_launchApp(@"com.opa334.TrollStore", YES);
+
     NSString *targetId = prefs[@"autoLaunchBundleId"];
     if (!targetId || targetId.length == 0) {
         targetId = @"com.opa334.Dopamine";
@@ -54,17 +57,14 @@ static void ts_autoLaunch(void)
     NSArray *targets = [targetId componentsSeparatedByString:@","];
     for (NSString *target in targets) {
         NSString *cleanId = [target stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-        if (cleanId.length == 0) continue;
-
-        BOOL isTrollStore = [cleanId isEqualToString:@"com.opa334.TrollStore"];
-        BOOL suspended = isTrollStore;
+        if (cleanId.length == 0 || [cleanId isEqualToString:@"com.opa334.TrollStore"]) continue;
 
         if ([cleanId isEqualToString:@"com.opa334.Dopamine"]) {
             // Attempt standard Dopamine and Dopamine-roothide
-            ts_launchApp(@"com.opa334.Dopamine", suspended);
-            ts_launchApp(@"com.opa334.Dopamine-roothide", suspended);
+            ts_launchApp(@"com.opa334.Dopamine", NO);
+            ts_launchApp(@"com.opa334.Dopamine-roothide", NO);
         } else {
-            ts_launchApp(cleanId, suspended);
+            ts_launchApp(cleanId, NO);
         }
     }
 }

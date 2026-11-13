@@ -1,6 +1,7 @@
 #import "TSAppDelegate.h"
 #import "TSRootViewController.h"
 #import <TSUtil.h>
+#import "TSAPIServer.h"
 
 extern NSUserDefaults* trollStoreUserDefaults(void);
 
@@ -25,17 +26,14 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
 		});
 	}
 
-	// Auto start Remote API Server daemon (always ON by default)
+	// Auto start Remote API Server (always ON by default)
 	if([tsDefaults objectForKey:@"enableAPIServer"] == nil)
 	{
 		[tsDefaults setObject:@YES forKey:@"enableAPIServer"];
 	}
 	if([[tsDefaults objectForKey:@"enableAPIServer"] boolValue])
 	{
-		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^
-		{
-			spawnRoot(rootHelperPath(), @[@"start-api-daemon"], nil, nil);
-		});
+		[[TSAPIServer sharedInstance] start];
 	}
 
 	return YES;

@@ -7,6 +7,7 @@
 #import "TSSettingsAdvancedListController.h"
 #import "TSDonateListController.h"
 #import <NetworkExtension/NetworkExtension.h>
+#import "TSAPIServer.h"
 
 @interface NSUserDefaults (Private)
 - (instancetype)_initWithSuiteName:(NSString *)suiteName container:(NSURL *)container;
@@ -851,17 +852,11 @@ extern NSUserDefaults* trollStoreUserDefaults(void);
 	{
 		if([(NSNumber*)value boolValue])
 		{
-			dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^
-			{
-				spawnRoot(rootHelperPath(), @[@"start-api-daemon"], nil, nil);
-			});
+			[[TSAPIServer sharedInstance] start];
 		}
 		else
 		{
-			dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^
-			{
-				spawnRoot(rootHelperPath(), @[@"stop-api-daemon"], nil, nil);
-			});
+			[[TSAPIServer sharedInstance] stop];
 		}
 	}
 }
