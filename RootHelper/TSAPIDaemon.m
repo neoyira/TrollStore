@@ -1,6 +1,7 @@
 #import "TSAPIDaemon.h"
 #import <TSUtil.h>
 #import <sys/socket.h>
+#import <sys/stat.h>
 #import <netinet/in.h>
 #import <arpa/inet.h>
 #import <unistd.h>
